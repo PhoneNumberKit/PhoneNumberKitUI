@@ -1,0 +1,8 @@
+--swiftversion 5.3
+--xcodeindentation enabled
+--disable unusedArguments, redundantReturn, redundantSelf, trailingCommas, trailingClosures, wrapArguments, wrapMultilineStatementBraces
+--enable blockComments, isEmpty
+--emptybraces spaced
+--ifdef no-indent
+--importgrouping testable-first
+--ranges no-space

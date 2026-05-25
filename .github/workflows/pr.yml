@@ -1,0 +1,48 @@
+name: PR Checks
+
+on:
+  pull_request:
+    branches:
+      - main
+  push:
+    branches:
+      - main
+
+jobs:
+  ios-test:
+    name: iOS
+    runs-on: macos-latest
+
+    concurrency:
+      group: ${{ github.workflow }}-${{ github.ref }}-ios-test
+      cancel-in-progress: true
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      # UIKit-only package: swift test can't compile it on macOS/Linux, so build+test on a simulator.
+      # Resolve a concrete simulator from whatever the runner image ships, rather than pinning a
+      # model name (which breaks when GitHub rotates Xcode/simulator versions).
+      - name: Resolve iOS simulator
+        id: sim
+        run: |
+          udid=$(xcrun simctl list devices available --json \
+            | jq -r '.devices
+                     | to_entries
+                     | map(select(.key | test("SimRuntime.iOS")))
+                     | sort_by(.key)
+                     | last.value
+                     | map(select(.name | startswith("iPhone")))
+                     | last.udid')
+          if [ -z "$udid" ] || [ "$udid" = "null" ]; then
+            echo "No available iPhone simulator found"; exit 1
+          fi
+          echo "udid=$udid" >> "$GITHUB_OUTPUT"
+          echo "Using simulator $udid"
+
+      - name: Test - iOS Simulator
+        run: |
+          set -o pipefail && xcodebuild test \
+            -scheme "PhoneNumberKitUI" \
+            -destination "id=${{ steps.sim.outputs.udid }}"
