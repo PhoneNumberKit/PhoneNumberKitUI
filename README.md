@@ -43,6 +43,29 @@ CountryCodePicker.commonCountryCodes = ["US", "GB", "FR"]
 textField.withDefaultPickerUIOptions.backgroundColor = .systemBackground
 ```
 
+### SwiftUI
+
+Use `PhoneNumberTextFieldRepresentable` to bind a text field to SwiftUI state. Configure the
+underlying `PhoneNumberTextField` in the trailing closure:
+
+```swift
+import SwiftUI
+import PhoneNumberKitUI
+
+struct ContentView: View {
+    @State private var phoneNumber = ""
+
+    var body: some View {
+        PhoneNumberTextFieldRepresentable(text: $phoneNumber) { textField in
+            textField.withFlag = true
+            textField.withPrefix = true
+            textField.withExamplePlaceholder = true
+            textField.withDefaultPickerUI = true
+        }
+    }
+}
+```
+
 Override the default region by subclassing:
 
 ```swift
