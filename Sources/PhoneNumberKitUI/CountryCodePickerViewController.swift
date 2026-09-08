@@ -218,8 +218,22 @@ public class CountryCodePickerViewController: UITableViewController {
     
     // MARK: - Table view data source
 
-    func country(for indexPath: IndexPath) -> Country {
-        isFiltering ? filteredCountries[indexPath.row] : countries[indexPath.section][indexPath.row]
+    /// The country at `indexPath`, or `nil` if that row no longer exists.
+    ///
+    /// `isFiltering` is derived from the search bar, so it becomes true on the
+    /// keystroke, while `filteredCountries` is only replaced when the throttled
+    /// search work item lands 0.25s later. A table view can therefore ask for a row
+    /// index it read before the list changed, and subscripting it directly traps.
+    func country(for indexPath: IndexPath) -> Country? {
+        if isFiltering {
+            guard filteredCountries.indices.contains(indexPath.row) else { return nil }
+            return filteredCountries[indexPath.row]
+        }
+        guard countries.indices.contains(indexPath.section),
+              countries[indexPath.section].indices.contains(indexPath.row) else {
+            return nil
+        }
+        return countries[indexPath.section][indexPath.row]
     }
 
     override public func numberOfSections(in tableView: UITableView) -> Int {
@@ -238,7 +252,11 @@ public class CountryCodePickerViewController: UITableViewController {
             cell = tableView.dequeueReusableCell(withIdentifier: CountryCodePickerTableViewCell.reuseIdentifier, for: indexPath) as! CountryCodePickerTableViewCell
         }
         
-        let country = self.country(for: indexPath)
+        guard let country = self.country(for: indexPath) else {
+            // The row went away between the count and this call; the table view will
+            // ask again after the pending reload.
+            return cell
+        }
         cell.configure(with: country)
         cell.options = options.cellOptions
         return cell
@@ -278,8 +296,8 @@ public class CountryCodePickerViewController: UITableViewController {
     }
 
     override public func tableView(_ tableView: UITableView, didSelectRowAt indexPath: IndexPath) {
-        let country = self.country(for: indexPath)
         tableView.deselectRow(at: indexPath, animated: true)
+        guard let country = self.country(for: indexPath) else { return }
         delegate?.countryCodePickerViewControllerDidPickCountry(country)
     }
     
