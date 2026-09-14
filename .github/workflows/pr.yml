@@ -19,7 +19,7 @@ jobs:
 
     steps:
       - name: Checkout Repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       # UIKit-only package: swift test can't compile it on macOS/Linux, so build+test on a simulator.
       # Resolve a concrete simulator from whatever the runner image ships, rather than pinning a
@@ -46,3 +46,20 @@ jobs:
           set -o pipefail && xcodebuild test \
             -scheme "PhoneNumberKitUI" \
             -destination "id=${{ steps.sim.outputs.udid }}"
+
+  macos-build:
+    name: macOS
+    runs-on: macos-latest
+
+    concurrency:
+      group: ${{ github.workflow }}-${{ github.ref }}-macos-build
+      cancel-in-progress: true
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v7
+
+      # Guards against a future unguarded UIKit reference leaking into a shared source file:
+      # on macOS the module must still compile (to an empty binary) via plain SPM.
+      - name: swift build
+        run: swift build
