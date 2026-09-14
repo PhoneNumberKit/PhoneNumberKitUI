@@ -1,3 +1,4 @@
+#if os(iOS)
 import SwiftUI
 
 /// A SwiftUI wrapper around ``PhoneNumberTextField``.
@@ -53,3 +54,4 @@ public struct PhoneNumberTextFieldRepresentable: UIViewRepresentable {
         }
     }
 }
+#endif
