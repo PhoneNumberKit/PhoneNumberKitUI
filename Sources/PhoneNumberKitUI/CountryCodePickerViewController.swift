@@ -37,7 +37,6 @@ public class CountryCodePickerViewController: UITableViewController {
     private var sectionIndexTitles: [String] = []
 
     var filteredCountries: [Country] = []
-    private var searchWorkItem: DispatchWorkItem?
 
     public weak var delegate: CountryCodePickerDelegate?
     
@@ -295,34 +294,21 @@ extension CountryCodePickerViewController: UISearchResultsUpdating {
         searchController.searchBar.text?.isEmpty ?? true
     }
 
-    public func updateSearchResults(for searchController: UISearchController) {
-        // Cancel previous search task
-        searchWorkItem?.cancel()
-        
-        let searchText = searchController.searchBar.text ?? ""
-        
-        // Create new work item with throttling
-        let workItem = DispatchWorkItem { [weak self] in
-            guard let self = self else { return }
-            
-            // Perform filtering on background thread
-            let filtered = self.allCountries.filter { country in
-                country.name.lowercased().contains(searchText.lowercased()) ||
-                    country.code.lowercased().contains(searchText.lowercased()) ||
-                    country.prefix.lowercased().contains(searchText.lowercased())
-            }
-            
-            // Update UI on main thread
-            DispatchQueue.main.async {
-                self.filteredCountries = filtered
-                self.tableView.reloadData()
-            }
+    func countries(matching searchText: String) -> [Country] {
+        let normalizedSearchText = searchText.lowercased()
+
+        return allCountries.filter { country in
+            country.name.lowercased().contains(normalizedSearchText) ||
+                country.code.lowercased().contains(normalizedSearchText) ||
+                country.prefix.lowercased().contains(normalizedSearchText)
         }
-        
-        searchWorkItem = workItem
-        
-        // Execute with 250ms delay (throttling)
-        DispatchQueue.global(qos: .userInitiated).asyncAfter(deadline: .now() + 0.25, execute: workItem)
+    }
+
+    public func updateSearchResults(for searchController: UISearchController) {
+        let searchText = searchController.searchBar.text ?? ""
+
+        filteredCountries = countries(matching: searchText)
+        tableView.reloadData()
     }
 }
 
