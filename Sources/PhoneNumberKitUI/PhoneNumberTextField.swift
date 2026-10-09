@@ -64,7 +64,14 @@ open class PhoneNumberTextField: UITextField, UITextFieldDelegate {
             self.partialFormatter.defaultRegion = newValue
         }
     }
-    
+
+    /// Locale used for displaying country names in the country code picker. Defaults to the current locale.
+    public var locale: Locale = .autoupdatingCurrent {
+        didSet {
+            updateFlag() // regenerate accessibility label
+        }
+    }
+
     /// Whether to format with the international prefix. Defaults to true.
     @IBInspectable public var withPrefix: Bool = true {
         didSet {
@@ -355,7 +362,7 @@ open class PhoneNumberTextField: UITextField, UITextFieldDelegate {
             value: "Select your country code",
             comment: "Accessibility Label for Country Code Picker button")
 
-        if let countryName = Locale.autoupdatingCurrent.localizedString(forRegionCode: self.currentRegion) {
+        if let countryName = locale.localizedString(forRegionCode: self.currentRegion) {
             let selectedFormat = NSLocalizedString(
                 "PhoneNumberKit.CountryCodePickerEntryButton.AccessibilityHint",
                 value: "%@ selected",
@@ -393,7 +400,8 @@ open class PhoneNumberTextField: UITextField, UITextFieldDelegate {
     @objc open func didPressFlagButton() {
         guard withDefaultPickerUI else { return }
         let vc = CountryCodePickerViewController(utility: utility,
-                                                 options: withDefaultPickerUIOptions)
+                                                 options: withDefaultPickerUIOptions,
+                                                 locale: locale)
         countryCodePickerViewController = vc
         vc.delegate = self
         stateDelegate?.countryCodePickerViewControllerWillPresent(self, controller: vc)

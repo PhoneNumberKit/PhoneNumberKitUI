@@ -27,6 +27,8 @@ public class CountryCodePickerViewController: UITableViewController {
 
     let commonCountryCodes: [String]
 
+    let locale: Locale
+
     var shouldRestoreNavigationBarToHidden = false
 
     var hasCurrent = true
@@ -51,13 +53,16 @@ public class CountryCodePickerViewController: UITableViewController {
     ///
     /// - parameter utility: A `PhoneNumberUtility` instance to be used by the text field.
     /// - parameter commonCountryCodes: An array of country codes to display in the section below the current region section. defaults to `PhoneNumberUtility.CountryCodePicker.commonCountryCodes`
+    /// - parameter locale: The locale to use for displaying country names.
     public init(
         utility: PhoneNumberUtility,
         options: CountryCodePickerOptions?,
-        commonCountryCodes: [String] = CountryCodePicker.commonCountryCodes) {
+        commonCountryCodes: [String] = CountryCodePicker.commonCountryCodes,
+        locale: Locale = .autoupdatingCurrent) {
             self.utility = utility
             self.commonCountryCodes = commonCountryCodes
             self.options = options ?? .default
+            self.locale = locale
             self.cellIdentifier = self.options.cellOptions.cellType.identifier
             self.headerIdentifier = self.options.headerOptions.cellType.identifier
             super.init(style: .grouped)
@@ -67,6 +72,7 @@ public class CountryCodePickerViewController: UITableViewController {
         self.utility = PhoneNumberUtility()
         self.commonCountryCodes = CountryCodePicker.commonCountryCodes
         self.options = .default
+        self.locale = .autoupdatingCurrent
         self.cellIdentifier = self.options.cellOptions.cellType.identifier
         self.headerIdentifier = self.options.headerOptions.cellType.identifier
         super.init(coder: aDecoder)
@@ -155,15 +161,15 @@ public class CountryCodePickerViewController: UITableViewController {
         DispatchQueue.global(qos: .userInitiated).async {
             let allCountries = self.utility
                 .allCountries()
-                .compactMap({ Country(for: $0, with: self.utility) })
-                .sorted(by: { $0.name.localizedCaseInsensitiveCompare($1.name) == .orderedAscending })
+                .compactMap({ Country(for: $0, with: self.utility, locale: self.locale) })
+                .sorted(by: { $0.name.compare($1.name, options: .caseInsensitive, locale: self.locale) == .orderedAscending })
 
             let countries = allCountries
                 .reduce([[Country]]()) { collection, country in
                     var collection = collection
                     guard var lastGroup = collection.last else { return [[country]] }
-                    let lhs = lastGroup.first?.name.folding(options: .diacriticInsensitive, locale: nil)
-                    let rhs = country.name.folding(options: .diacriticInsensitive, locale: nil)
+                    let lhs = lastGroup.first?.name.folding(options: .diacriticInsensitive, locale: self.locale)
+                    let rhs = country.name.folding(options: .diacriticInsensitive, locale: self.locale)
                     if lhs?.first == rhs.first {
                         lastGroup.append(country)
                         collection[collection.count - 1] = lastGroup
@@ -173,12 +179,12 @@ public class CountryCodePickerViewController: UITableViewController {
                     return collection
                 }
 
-            let popular = self.commonCountryCodes.compactMap({ Country(for: $0, with: self.utility) })
+            let popular = self.commonCountryCodes.compactMap({ Country(for: $0, with: self.utility, locale: self.locale) })
 
             var countrySections: [[Country]] = []
             
             var hasCurrent = self.hasCurrent
-            if hasCurrent, let current = Country(for: PhoneNumberUtility.defaultRegionCode(), with: self.utility) {
+            if hasCurrent, let current = Country(for: PhoneNumberUtility.defaultRegionCode(), with: self.utility, locale: self.locale) {
                 countrySections.append([current])
             } else {
                 hasCurrent = false
@@ -320,10 +326,10 @@ public extension CountryCodePickerViewController {
         public var name: String
         public var prefix: String
 
-        public init?(for countryCode: String, with utility: PhoneNumberUtility) {
+        public init?(for countryCode: String, with utility: PhoneNumberUtility, locale: Locale = .autoupdatingCurrent) {
             let flagBase = UnicodeScalar("🇦").value - UnicodeScalar("A").value
             guard
-                let name = (Locale.current as NSLocale).localizedString(forCountryCode: countryCode),
+                let name = (locale as NSLocale).localizedString(forCountryCode: countryCode),
                 let prefix = utility.countryCode(for: countryCode)?.description
             else {
                 return nil
