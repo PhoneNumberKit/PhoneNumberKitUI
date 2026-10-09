@@ -4,7 +4,7 @@ import SwiftUI
 /// A SwiftUI wrapper around ``PhoneNumberTextField``.
 ///
 /// The text field and its country code picker (if enabled) use the locale from the SwiftUI environment,
-/// which defaults to current and can be overriden using the standard `.environment(\.locale, …)`
+/// which defaults to current and can be overridden using the standard `.environment(\.locale, …)`
 /// modifier if needed.
 public struct PhoneNumberTextFieldRepresentable: UIViewRepresentable {
     @Environment(\.locale) private var locale: Locale
